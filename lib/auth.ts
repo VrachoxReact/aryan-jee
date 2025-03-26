@@ -5,6 +5,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GitHubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcrypt";
+import dbConnect from "./mongoose";
+import User from "@/models/User";
 
 // Export auth options for use in other parts of the application
 export const authOptions: NextAuthOptions = {
@@ -29,31 +31,53 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
+        // Connect to MongoDB
+        await dbConnect();
+
+        // First try to find user in MongoDB
+        const mongoUser = await User.findOne({ email: credentials.email });
+        
+        if (mongoUser && mongoUser.password) {
+          // Use the comparePassword method from the User model
+          const isPasswordValid = await mongoUser.comparePassword(credentials.password);
+          
+          if (isPasswordValid) {
+            return {
+              id: mongoUser._id.toString(),
+              email: mongoUser.email,
+              name: mongoUser.name,
+              image: mongoUser.image,
+              role: mongoUser.role,
+            };
+          }
+        }
+
+        // Fallback to Prisma during transition
+        const prismaUser = await prisma.user.findUnique({
           where: {
             email: credentials.email,
           },
         });
 
-        if (!user || !user.password) {
+        if (!prismaUser || !prismaUser.password) {
           return null;
         }
 
-        const isPasswordValid = await bcrypt.compare(
+        const isPrismaPasswordValid = await bcrypt.compare(
           credentials.password,
-          user.password
+          prismaUser.password
         );
 
-        if (!isPasswordValid) {
+        if (!isPrismaPasswordValid) {
           return null;
         }
 
         return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-          role: user.role,
+          id: prismaUser.id,
+          email: prismaUser.email,
+          name: prismaUser.name,
+          image: prismaUser.image,
+          role: prismaUser.role,
         };
       },
     }),
@@ -83,4 +107,4 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-}; 
+};

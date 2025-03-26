@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import bcrypt from "bcrypt"
 import prisma from "@/lib/prisma"
+import dbConnect from "@/lib/mongoose"
+import User from "@/models/User"
 
 export async function POST(request: Request) {
   try {
@@ -14,25 +16,42 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if email already exists
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        email,
-      },
-    })
+    // Connect to MongoDB using Mongoose
+    await dbConnect();
 
-    if (existingUser) {
+    // Check if email already exists in MongoDB
+    const existingMongoUser = await User.findOne({ email });
+    if (existingMongoUser) {
       return NextResponse.json(
         { message: "Email already in use" },
         { status: 400 }
       )
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10)
+    // Also check in Prisma (during transition period)
+    const existingPrismaUser = await prisma.user.findUnique({
+      where: {
+        email,
+      },
+    })
 
-    // Create user
-    const user = await prisma.user.create({
+    if (existingPrismaUser) {
+      return NextResponse.json(
+        { message: "Email already in use" },
+        { status: 400 }
+      )
+    }
+
+    // Create user in MongoDB using Mongoose
+    const mongoUser = await User.create({
+      email,
+      name,
+      password, // Password will be hashed by the pre-save hook
+    });
+
+    // Also create user in Prisma (during transition period)
+    const hashedPassword = await bcrypt.hash(password, 10)
+    const prismaUser = await prisma.user.create({
       data: {
         email,
         name,
@@ -41,12 +60,18 @@ export async function POST(request: Request) {
     })
 
     // Remove password from response
-    const { password: _, ...userWithoutPassword } = user
+    const userResponse = {
+      id: mongoUser._id.toString(),
+      email: mongoUser.email,
+      name: mongoUser.name,
+      role: mongoUser.role,
+      createdAt: mongoUser.createdAt,
+    };
 
     return NextResponse.json(
       {
         message: "User created successfully",
-        user: userWithoutPassword,
+        user: userResponse,
       },
       { status: 201 }
     )
@@ -57,4 +82,4 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
-} 
+}

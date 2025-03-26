@@ -17,6 +17,7 @@ A comprehensive e-learning platform designed specifically for JEE (Joint Entranc
 - **UI Components**: shadcn/ui component system
 - **Authentication**: NextAuth.js for secure user authentication
 - **Data Management**: React Query for API data fetching and caching
+- **Database**: MongoDB for storing user accounts and application data
 
 ## Getting Started
 
@@ -24,6 +25,7 @@ A comprehensive e-learning platform designed specifically for JEE (Joint Entranc
 
 - Node.js 16+ and npm
 - Git
+- MongoDB Atlas account or local MongoDB server
 
 ### Installation
 
@@ -39,9 +41,9 @@ npm install
 ```
 
 3. Set up environment variables
-Create a `.env` file in the root directory with the following variables:
+Create a `.env.local` file in the root directory with the following variables:
 ```
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="mongodb+srv://username:password@cluster0.mongodb.net/ai-learning-platform?retryWrites=true&w=majority"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-nextauth-secret"
 GITHUB_ID="your-github-oauth-app-id"
@@ -51,12 +53,28 @@ GOOGLE_CLIENT_SECRET="your-google-oauth-app-secret"
 ```
 Note: For development, you can generate a random NEXTAUTH_SECRET using `openssl rand -base64 32` in your terminal.
 
-4. Start the development server
+4. Generate Prisma client
+```bash
+npx prisma generate
+```
+
+5. Start the development server
 ```bash
 npm run dev
 ```
 
-5. Open http://localhost:3000 in your browser
+6. Open http://localhost:3000 in your browser
+
+## MongoDB Integration
+
+The application uses MongoDB to store user accounts and application data. For detailed setup instructions, see [MONGODB_SETUP.md](MONGODB_SETUP.md).
+
+Key features of the MongoDB integration:
+- User registration and authentication
+- Profile management
+- Test data storage
+- Resource management
+- Community features
 
 ## Deployment
 
@@ -107,7 +125,10 @@ The application has been optimized with robust error handling strategies to prev
 
 - `/app`: Main application pages and layouts (using Next.js App Router)
 - `/components`: Reusable UI components
+- `/contexts`: React context providers
 - `/lib`: Utility functions, data fetching, and API clients
+- `/models`: Mongoose models for MongoDB
+- `/prisma`: Prisma schema and client
 - `/public`: Static assets
 - `/styles`: Global CSS and Tailwind configurations
 
@@ -138,4 +159,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Tailwind CSS](https://tailwindcss.com/)
 - [shadcn/ui](https://ui.shadcn.com/)
 - [Radix UI](https://www.radix-ui.com/)
-- [NextAuth.js](https://next-auth.js.org/) 
+- [NextAuth.js](https://next-auth.js.org/)
+- [MongoDB](https://www.mongodb.com/)
+- [Mongoose](https://mongoosejs.com/)
